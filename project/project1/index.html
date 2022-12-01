@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="author" content="Tiffany Phan" />
+    
+    <link rel="shortcut icon" type="image/x-icon" href="/img/favicon.ico">
+    <title>No Sleep In Texas</title>
+    <meta name="generator" content="Hugo 0.107.0">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+    <link rel="stylesheet" type="text/css" href="/css/main.css" />
+    <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" />
+    <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,400,200bold,400old" />
+    
+    <!--[if lt IE 9]>
+			<script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+			<script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+		<![endif]-->
+
+    
+  </head>
+
+  <body>
+    <div id="wrap">
+      
+      <nav class="navbar navbar-default">
+  <div class="container">
+    <div class="navbar-header">
+      <a class="navbar-brand" href="/"><i class="fa fa-home"></i></a>
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+    <div class="navbar-collapse collapse" id="navbar">
+      <ul class="nav navbar-nav navbar-right">
+      
+        
+        <li><a href="/post/">BLOG</a></li>
+        
+        <li><a href="/projects/">PROJECTS</a></li>
+        
+        <li><a href="/resume/">RESUME</a></li>
+        
+      
+      </ul>
+    </div>
+  </div>
+</nav>
+
+      <div class="container">
+        <div class="blog-post">
+          <h3>
+            <strong><a href="/project/project1/">No Sleep In Texas</a></strong>
+          </h3>
+        </div>
+ 
+<div class="blog-title">
+          <h4>
+         January 1, 0001 
+            &nbsp;&nbsp;
+            
+          </h4>
+        </div>
+
+        <div class="panel panel-default">
+          <div class="panel-body">
+            <div class="blogpost">
+              
+
+
+<div id="tiffany-phan-tp24326" class="section level3">
+<h3>Tiffany Phan tp24326</h3>
+<hr />
+</div>
+<div id="introduction" class="section level3">
+<h3>Introduction</h3>
+<p>The datasets I chose focus on the health of Texas counties from 2018 to 2022. The datasets are Length of Life, Quality of Life, and Other Health Behaviors. These datasets were collected from <a href="countyhealthrankings.org">CountyHealthRankings</a>, a website that ranks the health of counties across the country each year. It does this by weighing various health indicators, which include the datasets I chose. It’s important to note that CountyHealthRankings employs an extensive list of health indicators but I am only interested in a small subset. This means I extracted specific categories from the original datasets and placed them into custom excel files prior to importing them here.</p>
+<p>The Length of Life dataset contains the 2018-2022 data for ‘Life Expectancy’ in each Texas county. This is a numerical category expressed in years. The Quality of Life dataset contains the 2018-2022 data for ‘% Fair or Poor Health’, ‘% Frequent Physical Distress’, and ‘% Frequent Mental Distress’ in each Texas county. Each of these is a numerical category expressed in percentage of population that exhibits those qualities. The Other Health Behaviors dataset contains the 2018-2022 data for ‘% Insufficient Sleep’ in each Texas county. This is a numerical category expressed in percentage of population that exhibits said quality.</p>
+<p>I chose these datasets because I was curious about the effect of sleep deprivation on health. As a college student, I often have days with little sleep. I have wondered if these habits are affecting my long-term health. With this data, I will be able to compare the rate of insufficient sleep to various health factors across all counties in Texas.</p>
+<p>Each row in each dataset represents the corresponding values for a county in a single year. For example, in the Quality of Life dataset, a single row corresponds to a unqiue county’s ‘% Fair or Poor Health’, ‘% Frequent Physical Distress’, and ‘% Frequent Mental Distress’ values for a single year. I will join the rows across datasets using the counties and years as keys. The county values and year values are categorical.</p>
+<p>I expect to find that a lack of sleep correlates to worse health factors. Specifically, the counties with a higher percentage of residents with insufficient sleep will also have a higher percentage of residents with frequent physical and mental distress, as well as a lower life expectancy. I would be pleasantly surprised to find that a correlation does not exist.</p>
+<pre class="r"><code>library(ggplot2)
+library(tidyverse)
+library(readxl)
+LOL &lt;- read_excel(&quot;lifeexpectancy.xlsx&quot;)
+QOL &lt;- read_excel(&quot;poorhealth.xlsx&quot;)
+OHB &lt;- read_excel(&quot;nosleep.xlsx&quot;)</code></pre>
+<hr />
+</div>
+<div id="tidying" class="section level3">
+<h3>Tidying</h3>
+<p>The datasets I am using are already tidy so no tidying is necessary.</p>
+<hr />
+</div>
+<div id="merging" class="section level3">
+<h3>Merging</h3>
+<p>The ID variables that will be used to merge the three datasets is ‘County’ and ‘Year’. All three datasets have the same 1275 observations. However, the Length of Life dataset does not have a ‘Life Expectancy’ value for a few of the counties and all of year 2018. These will be omitted later.</p>
+<p>Note: the first observation for every year is an average of all observations for that year, i.e. the ‘All’ county corresponds to the values for all of Texas in that year.</p>
+<pre class="r"><code>LOL # Length of Life</code></pre>
+<pre><code>## # A tibble: 1,275 × 3
+##    County     Year `Life Expectancy`
+##    &lt;chr&gt;     &lt;dbl&gt;             &lt;dbl&gt;
+##  1 All        2022              78.4
+##  2 Anderson   2022              73.2
+##  3 Andrews    2022              76.4
+##  4 Angelina   2022              75.1
+##  5 Aransas    2022              74.9
+##  6 Archer     2022              80.3
+##  7 Armstrong  2022              75.9
+##  8 Atascosa   2022              76.8
+##  9 Austin     2022              78.2
+## 10 Bailey     2022              77.4
+## # … with 1,265 more rows</code></pre>
+<pre class="r"><code>QOL # Quality of Life</code></pre>
+<pre><code>## # A tibble: 1,275 × 5
+##    County     Year `% Fair or Poor Health` % Frequent Physical Distres…¹ % Fre…²
+##    &lt;chr&gt;     &lt;dbl&gt;                   &lt;dbl&gt;                         &lt;dbl&gt;   &lt;dbl&gt;
+##  1 All        2022                    20.9                          10.6    12.1
+##  2 Anderson   2022                    25.6                          14.7    15.5
+##  3 Andrews    2022                    25.9                          13.4    13.9
+##  4 Angelina   2022                    26.8                          14.7    16.4
+##  5 Aransas    2022                    25.5                          15      16  
+##  6 Archer     2022                    18.6                          12.3    15.2
+##  7 Armstrong  2022                    17.9                          11.9    14.8
+##  8 Atascosa   2022                    27.2                          14      14  
+##  9 Austin     2022                    21.7                          12.7    14.1
+## 10 Bailey     2022                    25.1                          12.9    13.2
+## # … with 1,265 more rows, and abbreviated variable names
+## #   ¹​`% Frequent Physical Distress`, ²​`% Frequent Mental Distress`</code></pre>
+<pre class="r"><code>OHB # Other Health Behaviors</code></pre>
+<pre><code>## # A tibble: 1,275 × 3
+##    County     Year `% Insufficient Sleep`
+##    &lt;chr&gt;     &lt;dbl&gt;                  &lt;dbl&gt;
+##  1 All        2022                   34.4
+##  2 Anderson   2022                   38.0
+##  3 Andrews    2022                   35.8
+##  4 Angelina   2022                   37.3
+##  5 Aransas    2022                   36.6
+##  6 Archer     2022                   35.2
+##  7 Armstrong  2022                   34.0
+##  8 Atascosa   2022                   35.9
+##  9 Austin     2022                   35.7
+## 10 Bailey     2022                   36.2
+## # … with 1,265 more rows</code></pre>
+<p>The three datasets were merged using the tidyverse inner join function with ‘County’ and ‘Year’ as the ID variables. Because all three datasets are structured the same, i.e. each row contains the corresponding health value for a specific county and year, the merge is straightforward. No observations were dropped.</p>
+<pre class="r"><code>indicators &lt;- LOL %&gt;% 
+  inner_join(QOL, by = c(&quot;County&quot;, &quot;Year&quot;)) %&gt;%
+  inner_join(OHB, by = c(&quot;County&quot;, &quot;Year&quot;))
+indicators$Year = as.character(indicators$Year) # covnert year into a category variable
+
+indicators</code></pre>
+<pre><code>## # A tibble: 1,275 × 7
+##    County    Year  `Life Expectancy` % Fair or Poor He…¹ % Fre…² % Fre…³ % Ins…⁴
+##    &lt;chr&gt;     &lt;chr&gt;             &lt;dbl&gt;               &lt;dbl&gt;   &lt;dbl&gt;   &lt;dbl&gt;   &lt;dbl&gt;
+##  1 All       2022               78.4                20.9    10.6    12.1    34.4
+##  2 Anderson  2022               73.2                25.6    14.7    15.5    38.0
+##  3 Andrews   2022               76.4                25.9    13.4    13.9    35.8
+##  4 Angelina  2022               75.1                26.8    14.7    16.4    37.3
+##  5 Aransas   2022               74.9                25.5    15      16      36.6
+##  6 Archer    2022               80.3                18.6    12.3    15.2    35.2
+##  7 Armstrong 2022               75.9                17.9    11.9    14.8    34.0
+##  8 Atascosa  2022               76.8                27.2    14      14      35.9
+##  9 Austin    2022               78.2                21.7    12.7    14.1    35.7
+## 10 Bailey    2022               77.4                25.1    12.9    13.2    36.2
+## # … with 1,265 more rows, and abbreviated variable names
+## #   ¹​`% Fair or Poor Health`, ²​`% Frequent Physical Distress`,
+## #   ³​`% Frequent Mental Distress`, ⁴​`% Insufficient Sleep`</code></pre>
+<hr />
+</div>
+<div id="wrangling" class="section level3">
+<h3>Wrangling</h3>
+<p>Because the ‘Life Expectancy’ category contains NA values for certain counties, those counties/rows will be dropped from the data as they are not comparable. This reduces the number of observations from 255 to 238. This is done with the dplyr filter function.</p>
+<pre class="r"><code>indicators &lt;- indicators %&gt;%
+  filter(!(is.na(`Life Expectancy`) &amp; (Year != 2018))) # only rows where life expect. is not na, do not consider 2018 entries
+
+indicators</code></pre>
+<pre><code>## # A tibble: 1,207 × 7
+##    County    Year  `Life Expectancy` % Fair or Poor He…¹ % Fre…² % Fre…³ % Ins…⁴
+##    &lt;chr&gt;     &lt;chr&gt;             &lt;dbl&gt;               &lt;dbl&gt;   &lt;dbl&gt;   &lt;dbl&gt;   &lt;dbl&gt;
+##  1 All       2022               78.4                20.9    10.6    12.1    34.4
+##  2 Anderson  2022               73.2                25.6    14.7    15.5    38.0
+##  3 Andrews   2022               76.4                25.9    13.4    13.9    35.8
+##  4 Angelina  2022               75.1                26.8    14.7    16.4    37.3
+##  5 Aransas   2022               74.9                25.5    15      16      36.6
+##  6 Archer    2022               80.3                18.6    12.3    15.2    35.2
+##  7 Armstrong 2022               75.9                17.9    11.9    14.8    34.0
+##  8 Atascosa  2022               76.8                27.2    14      14      35.9
+##  9 Austin    2022               78.2                21.7    12.7    14.1    35.7
+## 10 Bailey    2022               77.4                25.1    12.9    13.2    36.2
+## # … with 1,197 more rows, and abbreviated variable names
+## #   ¹​`% Fair or Poor Health`, ²​`% Frequent Physical Distress`,
+## #   ³​`% Frequent Mental Distress`, ⁴​`% Insufficient Sleep`</code></pre>
+<p>Because the category names are relatively long and contain spaces, I’d like to rename them. This will make them easier to manipulate. I also want the insufficient sleep category to be the leftmost after county and year as it is what I will be comparing all the other categories to. This is done with the dplyr select function.</p>
+<pre class="r"><code>indicators &lt;- indicators %&gt;%
+  select(county = County,
+         year = Year,
+         noSleep = `% Insufficient Sleep`, 
+         life = `Life Expectancy`,
+         poorHealth = `% Fair or Poor Health`,
+         phyStress = `% Frequent Physical Distress`,
+         menStress = `% Frequent Mental Distress`)
+
+indicators</code></pre>
+<pre><code>## # A tibble: 1,207 × 7
+##    county    year  noSleep  life poorHealth phyStress menStress
+##    &lt;chr&gt;     &lt;chr&gt;   &lt;dbl&gt; &lt;dbl&gt;      &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;
+##  1 All       2022     34.4  78.4       20.9      10.6      12.1
+##  2 Anderson  2022     38.0  73.2       25.6      14.7      15.5
+##  3 Andrews   2022     35.8  76.4       25.9      13.4      13.9
+##  4 Angelina  2022     37.3  75.1       26.8      14.7      16.4
+##  5 Aransas   2022     36.6  74.9       25.5      15        16  
+##  6 Archer    2022     35.2  80.3       18.6      12.3      15.2
+##  7 Armstrong 2022     34.0  75.9       17.9      11.9      14.8
+##  8 Atascosa  2022     35.9  76.8       27.2      14        14  
+##  9 Austin    2022     35.7  78.2       21.7      12.7      14.1
+## 10 Bailey    2022     36.2  77.4       25.1      12.9      13.2
+## # … with 1,197 more rows</code></pre>
+<p>The values for each year will be averaged so each county only has one value for each category instead of five (across five years). This is done with the dplyr group by function and summarize function. This will also drop the NA values of life expectancy for all counties in 2018.</p>
+<pre class="r"><code>mean_indicators &lt;- indicators %&gt;% 
+  group_by(county) %&gt;% 
+  summarize(mean_noSleep = mean(noSleep, na.rm = T), 
+            mean_life = mean(life, na.rm = T),
+            mean_poorHealth = mean(poorHealth, na.rm = T),
+            mean_phyStress = mean(phyStress, na.rm = T),
+            mean_menStress = mean(menStress, na.rm = T)) %&gt;%
+  filter(!(is.na(mean_life)))</code></pre>
+<p>Because I’d like to analyze the relationship insufficient sleep has on the other categories, it would be useful to order the observations by increasing insufficient sleep percentage rather than by the county names in alphabetical order. This is done with the dplyr arrange function.</p>
+<pre class="r"><code>mean_indicators &lt;- mean_indicators %&gt;%
+  arrange(mean_noSleep)
+
+mean_indicators</code></pre>
+<pre><code>## # A tibble: 238 × 6
+##    county    mean_noSleep mean_life mean_poorHealth mean_phyStress mean_menStr…¹
+##    &lt;chr&gt;            &lt;dbl&gt;     &lt;dbl&gt;           &lt;dbl&gt;          &lt;dbl&gt;         &lt;dbl&gt;
+##  1 Travis            30.2      81.7            15.2           9.76          10.9
+##  2 Denton            30.9      81.8            13.5           9.54          11.0
+##  3 Armstrong         31.0      76.1            14.0           9.98          12.0
+##  4 Carson            31.0      77.6            14.3           9.88          11.6
+##  5 Gillespie         31.0      80.4            17.2          11.3           12.0
+##  6 Rockwall          31.2      80.8            13.6           9.36          11.0
+##  7 Comal             31.2      79.6            15.7          10.3           11.1
+##  8 Kendall           31.3      81.3            14.1           9.44          11.0
+##  9 Parker            31.3      78.4            15            10.2           11.6
+## 10 Blanco            31.4      79.1            16.5          11             12.2
+## # … with 228 more rows, and abbreviated variable name ¹​mean_menStress</code></pre>
+<p>One value I am curious about is the difference in life expectancy from the average life expectancy across all counties. I would like to analyze this value for each county by adding a new category. This new category would be an indicator of how short or long the lives of people in that county are compared to the rest of Texas. This is done with the dplyr mutate function.</p>
+<pre class="r"><code>mean_indicators &lt;- mean_indicators %&gt;%
+  mutate(difLife = mean_life - (mean(mean_indicators$mean_life)))
+
+mean_indicators</code></pre>
+<pre><code>## # A tibble: 238 × 7
+##    county    mean_noSleep mean_life mean_poorHealth mean_phySt…¹ mean_…² difLife
+##    &lt;chr&gt;            &lt;dbl&gt;     &lt;dbl&gt;           &lt;dbl&gt;        &lt;dbl&gt;   &lt;dbl&gt;   &lt;dbl&gt;
+##  1 Travis            30.2      81.7            15.2         9.76    10.9   4.49 
+##  2 Denton            30.9      81.8            13.5         9.54    11.0   4.56 
+##  3 Armstrong         31.0      76.1            14.0         9.98    12.0  -1.11 
+##  4 Carson            31.0      77.6            14.3         9.88    11.6   0.398
+##  5 Gillespie         31.0      80.4            17.2        11.3     12.0   3.19 
+##  6 Rockwall          31.2      80.8            13.6         9.36    11.0   3.56 
+##  7 Comal             31.2      79.6            15.7        10.3     11.1   2.40 
+##  8 Kendall           31.3      81.3            14.1         9.44    11.0   4.06 
+##  9 Parker            31.3      78.4            15          10.2     11.6   1.12 
+## 10 Blanco            31.4      79.1            16.5        11       12.2   1.85 
+## # … with 228 more rows, and abbreviated variable names ¹​mean_phyStress,
+## #   ²​mean_menStress</code></pre>
+<hr />
+</div>
+<div id="visualizing" class="section level3">
+<h3>Visualizing</h3>
+<pre class="r"><code>mean_indicators %&gt;%
+  ggplot(aes(x = mean_poorHealth)) + 
+  geom_histogram(binwidth = 0.5) +
+  theme_minimal() +
+  labs(title = &quot;Distribution of Percentage of Poor Health&quot;,
+       x = &quot;Percentage in Poor Health&quot;,
+       y = &quot;Count&quot;)</code></pre>
+<p><img src="/project/project1_files/figure-html/unnamed-chunk-9-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>This plot displays the relationship the distribution of the mean percentage of thos in fair or poor health across all counties, averaged per year. Disregarding a couple of outliers, most of the counties report a percentage of residents in fair or poor health around 20 percent. This means that in all of Texas, about 1 in 5 are in fair or poor health.</p>
+<pre class="r"><code>indicators %&gt;%
+  ggplot(aes(x = year, y = noSleep, fill = year)) +   # compare sleep across years
+    geom_bar(stat = &quot;summary&quot;, fun = &quot;mean&quot;) +  # histogram
+    labs(title = &quot;Distribution of Insufficient Sleep&quot;,
+       x = &quot;Percentage with Insufficient Sleep&quot;,
+       y = &quot;Count&quot;) +
+    scale_y_continuous(breaks = seq(0,40,2)) +
+    scale_fill_brewer(palette = &quot;Purples&quot;)</code></pre>
+<p><img src="/project/project1_files/figure-html/unnamed-chunk-10-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>This plot displays the distribution of average insufficient sleep percentage across every country for each year. The four different years are placed next to each other to compare the change in insufficient sleep percentage. The distributions show that over the years, the percentage of people who report insufficient sleep is increasing. This means sleep deprivation might be a growing issue.</p>
+<pre class="r"><code>indicators %&gt;%
+  select(noSleep, menStress, year) %&gt;%
+  ggplot(aes(x = noSleep, y = menStress, color = year)) +
+  geom_point() +
+  geom_smooth(method = &quot;lm&quot;) +
+  theme_linedraw() +
+  scale_x_continuous(breaks = seq(28,42,1)) +
+  labs(title = &quot;Mental Distress over Insufficient Sleep&quot;,
+       x = &quot;Percentage with Insufficient Sleep&quot;,
+       y = &quot;Percentage with Frequent Mental Distress&quot;)</code></pre>
+<p><img src="/project/project1_files/figure-html/unnamed-chunk-11-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>This plot displays the relationship between insufficient sleep percentage and frequent mental distress across each year. A trend line was including to further visualize the relationship for each year. This relationship was very clear. The data points data shows a strong correlation between insufficient sleep and frequent mental distress. As the years go on, the relationship is strengthened as the slope of the trend line increases. This supports the hypothesis that a lack of sleep is detrimental to long-term mental health.</p>
+<hr />
+<pre><code>##        sysname        release        version       nodename        machine 
+##      &quot;Windows&quot;       &quot;10 x64&quot;  &quot;build 22000&quot;          &quot;MSI&quot;       &quot;x86-64&quot; 
+##          login           user effective_user 
+##        &quot;CanoJ&quot;        &quot;CanoJ&quot;        &quot;CanoJ&quot;</code></pre>
+</div>
+
+            
+        <hr>         <div class="related-posts">
+                <h5>Related Posts</h5>
+                
+              </div> 
+            </div>
+          </div>
+
+   <hr>  <div class="disqus">
+  <div id="disqus_thread"></div>
+  <script type="text/javascript">
+
+    (function() {
+      
+      
+      if (window.location.hostname == "localhost")
+        return;
+
+      var disqus_shortname = '';
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+  <a href="http://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+</div> 
+        </div>
+      </div>
+    </div>
+
+    
+    <footer>
+  <div id="footer">
+    <div class="container">
+      <p class="text-muted">&copy; All rights reserved. Powered by <a href="https://gohugo.io/">Hugo</a> and
+      <a href="http://www.github.com/nurlansu/hugo-sustain/">sustain</a> with ♥</p>
+    </div>
+  </div>
+</footer>
+<div class="footer"></div>
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+<script src="/js/docs.min.js"></script>
+<script src="/js/main.js"></script>
+
+<script src="/js/ie10-viewport-bug-workaround.js"></script>
+
+
+    
+  </body>
+</html>

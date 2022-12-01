@@ -1,0 +1,191 @@
+---
+title: "No Sleep In Texas"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval = TRUE,  
+                      warning = FALSE, message = FALSE, 
+                      fig.align = "center",
+                      R.options = list(max.print=100))
+
+# Edit the file starting below
+```
+
+### Tiffany Phan tp24326
+
+------------------------------------------------------------------------
+
+### Introduction
+
+The datasets I chose focus on the health of Texas counties from 2018 to 2022. The datasets are Length of Life, Quality of Life, and Other Health Behaviors. These datasets were collected from [CountyHealthRankings](countyhealthrankings.org), a website that ranks the health of counties across the country each year. It does this by weighing various health indicators, which include the datasets I chose. It's important to note that CountyHealthRankings employs an extensive list of health indicators but I am only interested in a small subset. This means I extracted specific categories from the original datasets and placed them into custom excel files prior to importing them here.
+
+The Length of Life dataset contains the 2018-2022 data for 'Life Expectancy' in each Texas county. This is a numerical category expressed in years. The Quality of Life dataset contains the 2018-2022 data for '% Fair or Poor Health', '% Frequent Physical Distress', and '% Frequent Mental Distress' in each Texas county. Each of these is a numerical category expressed in percentage of population that exhibits those qualities. The Other Health Behaviors dataset contains the 2018-2022 data for '% Insufficient Sleep' in each Texas county. This is a numerical category expressed in percentage of population that exhibits said quality.
+
+I chose these datasets because I was curious about the effect of sleep deprivation on health. As a college student, I often have days with little sleep. I have wondered if these habits are affecting my long-term health. With this data, I will be able to compare the rate of insufficient sleep to various health factors across all counties in Texas.
+
+Each row in each dataset represents the corresponding values for a county in a single year. For example, in the Quality of Life dataset, a single row corresponds to a unqiue county's '% Fair or Poor Health', '% Frequent Physical Distress', and '% Frequent Mental Distress' values for a single year. I will join the rows across datasets using the counties and years as keys. The county values and year values are categorical.
+
+I expect to find that a lack of sleep correlates to worse health factors. Specifically, the counties with a higher percentage of residents with insufficient sleep will also have a higher percentage of residents with frequent physical and mental distress, as well as a lower life expectancy. I would be pleasantly surprised to find that a correlation does not exist.
+
+```{r}
+library(ggplot2)
+library(tidyverse)
+library(readxl)
+LOL <- read_excel("lifeexpectancy.xlsx")
+QOL <- read_excel("poorhealth.xlsx")
+OHB <- read_excel("nosleep.xlsx")
+```
+
+------------------------------------------------------------------------
+
+### Tidying
+
+The datasets I am using are already tidy so no tidying is necessary.
+
+------------------------------------------------------------------------
+
+### Merging
+
+The ID variables that will be used to merge the three datasets is 'County' and 'Year'. All three datasets have the same 1275 observations. However, the Length of Life dataset does not have a 'Life Expectancy' value for a few of the counties and all of year 2018. These will be omitted later.
+
+Note: the first observation for every year is an average of all observations for that year, i.e. the 'All' county corresponds to the values for all of Texas in that year.
+
+```{r}
+LOL # Length of Life
+QOL # Quality of Life
+OHB # Other Health Behaviors
+
+```
+
+The three datasets were merged using the tidyverse inner join function with 'County' and 'Year' as the ID variables. Because all three datasets are structured the same, i.e. each row contains the corresponding health value for a specific county and year, the merge is straightforward. No observations were dropped.
+
+```{r}
+indicators <- LOL %>% 
+  inner_join(QOL, by = c("County", "Year")) %>%
+  inner_join(OHB, by = c("County", "Year"))
+indicators$Year = as.character(indicators$Year) # covnert year into a category variable
+
+indicators
+
+```
+
+------------------------------------------------------------------------
+
+### Wrangling
+
+Because the 'Life Expectancy' category contains NA values for certain counties, those counties/rows will be dropped from the data as they are not comparable. This reduces the number of observations from 255 to 238. This is done with the dplyr filter function.
+
+```{r}
+indicators <- indicators %>%
+  filter(!(is.na(`Life Expectancy`) & (Year != 2018))) # only rows where life expect. is not na, do not consider 2018 entries
+
+indicators
+```
+Because the category names are relatively long and contain spaces, I'd like to rename them. This will make them easier to manipulate. I also want the insufficient sleep category to be the leftmost after county and year as it is what I will be comparing all the other categories to. This is done with the dplyr select function.
+
+```{r}
+indicators <- indicators %>%
+  select(county = County,
+         year = Year,
+         noSleep = `% Insufficient Sleep`, 
+         life = `Life Expectancy`,
+         poorHealth = `% Fair or Poor Health`,
+         phyStress = `% Frequent Physical Distress`,
+         menStress = `% Frequent Mental Distress`)
+
+indicators
+```
+
+The values for each year will be averaged so each county only has one value for each category instead of five (across five years). This is done with the dplyr group by function and summarize function. This will also drop the NA values of life expectancy for all counties in 2018.
+
+```{r}
+mean_indicators <- indicators %>% 
+  group_by(county) %>% 
+  summarize(mean_noSleep = mean(noSleep, na.rm = T), 
+            mean_life = mean(life, na.rm = T),
+            mean_poorHealth = mean(poorHealth, na.rm = T),
+            mean_phyStress = mean(phyStress, na.rm = T),
+            mean_menStress = mean(menStress, na.rm = T)) %>%
+  filter(!(is.na(mean_life)))
+
+
+```
+
+
+Because I'd like to analyze the relationship insufficient sleep has on the other categories, it would be useful to order the observations by increasing insufficient sleep percentage rather than by the county names in alphabetical order. This is done with the dplyr arrange function.
+
+```{r}
+mean_indicators <- mean_indicators %>%
+  arrange(mean_noSleep)
+
+mean_indicators
+```
+
+One value I am curious about is the difference in life expectancy from the average life expectancy across all counties. I would like to analyze this value for each county by adding a new category. This new category would be an indicator of how short or long the lives of people in that county are compared to the rest of Texas. This is done with the dplyr mutate function.
+
+```{r}
+mean_indicators <- mean_indicators %>%
+  mutate(difLife = mean_life - (mean(mean_indicators$mean_life)))
+
+mean_indicators
+
+```
+
+------------------------------------------------------------------------
+
+### Visualizing
+
+```{r}
+
+mean_indicators %>%
+  ggplot(aes(x = mean_poorHealth)) + 
+  geom_histogram(binwidth = 0.5) +
+  theme_minimal() +
+  labs(title = "Distribution of Percentage of Poor Health",
+       x = "Percentage in Poor Health",
+       y = "Count")
+
+
+```
+
+This plot displays the relationship the distribution of the mean percentage of thos in fair or poor health across all counties, averaged per year. Disregarding a couple of outliers, most of the counties report a percentage of residents in fair or poor health around 20 percent. This means that in all of Texas, about 1 in 5 are in fair or poor health.
+
+```{r}
+indicators %>%
+  ggplot(aes(x = year, y = noSleep, fill = year)) +   # compare sleep across years
+    geom_bar(stat = "summary", fun = "mean") +  # histogram
+    labs(title = "Distribution of Insufficient Sleep",
+       x = "Percentage with Insufficient Sleep",
+       y = "Count") +
+    scale_y_continuous(breaks = seq(0,40,2)) +
+    scale_fill_brewer(palette = "Purples")
+
+```
+
+This plot displays the distribution of average insufficient sleep percentage across every country for each year. The four different years are placed next to each other to compare the change in insufficient sleep percentage. The distributions show that over the years, the percentage of people who report insufficient sleep is increasing. This means sleep deprivation might be a growing issue.
+
+```{r}
+indicators %>%
+  select(noSleep, menStress, year) %>%
+  ggplot(aes(x = noSleep, y = menStress, color = year)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  theme_linedraw() +
+  scale_x_continuous(breaks = seq(28,42,1)) +
+  labs(title = "Mental Distress over Insufficient Sleep",
+       x = "Percentage with Insufficient Sleep",
+       y = "Percentage with Frequent Mental Distress")
+
+```
+
+This plot displays the relationship between insufficient sleep percentage and frequent mental distress across each year. A trend line was including to further visualize the relationship for each year. This relationship was very clear. The data points data shows a strong correlation between insufficient sleep and frequent mental distress. As the years go on, the relationship is strengthened as the slope of the trend line increases. This supports the hypothesis that a lack of sleep is detrimental to long-term mental health.
+
+------------------------------------------------------------------------
+
+```{r, echo=F}
+## DO NOT DELETE THIS BLOCK!
+Sys.info()
+```
